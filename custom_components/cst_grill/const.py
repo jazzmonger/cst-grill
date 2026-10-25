@@ -1,0 +1,13 @@
+"""Constants for CST Grill."""
+DOMAIN = "cst_grill"
+CARD_VERSION = "0.1.3"  # keep in sync with frontend/cst-grill-card.js (scripts/update_card.sh)
+STATIC_BASE = "/cst_grill"
+CARD_URL = f"{STATIC_BASE}/cst-grill-card.js"
+CARD_URL_VERSIONED = f"{CARD_URL}?v={CARD_VERSION}"
+DASHBOARD_URL = "cst-grills"
+DASHBOARD_ID = "cst_grills"
+DASHBOARD_TITLE = "CST Grills"
+DASHBOARD_ICON = "mdi:grill"
+CONF_DEVICE_ID = "device_id"
+CONF_CREATE_DASHBOARD = "create_dashboard"
+VIEW_PREFIX = "cst-"

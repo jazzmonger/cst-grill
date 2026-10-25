@@ -1,0 +1,13 @@
+{
+  "domain": "cst_grill",
+  "name": "CST Grill",
+  "codeowners": ["@jazzmonger"],
+  "config_flow": true,
+  "dependencies": ["esphome", "frontend", "http", "lovelace"],
+  "documentation": "https://github.com/jazzmonger/cst-grill",
+  "integration_type": "device",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/jazzmonger/cst-grill/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
