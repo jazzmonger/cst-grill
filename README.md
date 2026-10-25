@@ -1,6 +1,6 @@
 # CST Grill (Home Assistant integration)
 
-Install from HACS and a **CST Grills** dashboard appears for your Chain Smoker grill, using the app-style
+Install from HACS and a **CST Grills** dashboard appears for your Chain Smoker 1-Pot grill, using the app-style
 [cst-grill-card](https://github.com/jazzmonger/cst-grill-card).
 
 This integration **creates no entities**. Your grill is already in Home Assistant through the native ESPHome
@@ -9,9 +9,8 @@ integration; this adds the card and the dashboard on top. Everything stays local
 ## What it does
 - Serves the bundled card at `/cst_grill/cst-grill-card.js` and registers it as a dashboard resource
   (`?v=<card version>` for cache-busting). In YAML resource mode it uses `add_extra_js_url` instead.
-- Config flow lists ESPHome devices that look like CST grills:
-  - **1-Pot**: `select.*_cook_mode` + `sensor.*_chamber_temperature` + `number.*_smoker_set_temperature`
-  - **5-Pot**: `sensor.*_rtd_temperature` + `number.*_smoker_set_temperature`
+- **CST 1-Pot only.** The config flow lists ESPHome devices that look like a CST 1-Pot:
+  `select.*_cook_mode` + `sensor.*_chamber_temperature` + `number.*_smoker_set_temperature`.
 - Optional **CST Grills** dashboard (sidebar) with one tab per grill: `custom:cst-grill-card` pinned by `device_id`.
   Tabs you add yourself are kept. Your other dashboards are never touched.
 - Removing the last grill removes the dashboard and the resource.

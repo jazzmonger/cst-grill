@@ -1,6 +1,6 @@
 """Constants for CST Grill."""
 DOMAIN = "cst_grill"
-CARD_VERSION = "0.1.3"  # keep in sync with frontend/cst-grill-card.js (scripts/update_card.sh)
+CARD_VERSION = "0.1.4"  # keep in sync with frontend/cst-grill-card.js (scripts/update_card.sh)
 STATIC_BASE = "/cst_grill"
 CARD_URL = f"{STATIC_BASE}/cst-grill-card.js"
 CARD_URL_VERSIONED = f"{CARD_URL}?v={CARD_VERSION}"

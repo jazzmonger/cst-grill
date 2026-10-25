@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "Add a CST grill",
-        "description": "Pick a Chain Smoker grill that is already in Home Assistant through ESPHome.",
+        "title": "Add a CST 1-Pot grill",
+        "description": "Pick a Chain Smoker 1-Pot grill that is already in Home Assistant through ESPHome.",
         "data": {
           "device_id": "Grill",
           "create_dashboard": "Show it on the CST Grills dashboard"
@@ -11,7 +11,7 @@
       }
     },
     "abort": {
-      "no_grills": "No CST grills found. Add the grill with the ESPHome integration first.",
+      "no_grills": "No CST 1-Pot grills found. Add the grill with the ESPHome integration first.",
       "already_configured": "This grill is already added."
     }
   },

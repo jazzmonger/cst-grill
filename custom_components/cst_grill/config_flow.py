@@ -1,4 +1,4 @@
-"""Config flow: pick a CST grill (an ESPHome device) to add the dashboard for."""
+"""Config flow: pick a CST 1-Pot grill (an ESPHome device) to add the dashboard for."""
 from __future__ import annotations
 
 from typing import Any
@@ -18,14 +18,14 @@ class CstGrillConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         grills = find_grills(self.hass)
         configured = {e.unique_id for e in self._async_current_entries()}
-        choices = {d: f"{n} ({k})" for d, (n, k) in grills.items() if d not in configured}
+        choices = {d: n for d, n in grills.items() if d not in configured}
         if user_input is not None:
             dev = user_input[CONF_DEVICE_ID]
             await self.async_set_unique_id(dev)
             self._abort_if_unique_id_configured()
-            name, kind = grills[dev]
+            name = grills[dev]
             return self.async_create_entry(
-                title=name, data={CONF_DEVICE_ID: dev, "kind": kind},
+                title=name, data={CONF_DEVICE_ID: dev},
                 options={CONF_CREATE_DASHBOARD: user_input.get(CONF_CREATE_DASHBOARD, True)},
             )
         if not choices:
