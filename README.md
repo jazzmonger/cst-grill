@@ -7,8 +7,8 @@ This integration **creates no entities**. Your grill is already in Home Assistan
 integration; this adds the card and the dashboard on top. Everything stays local (no cloud, no MQTT).
 
 ## What it does
-- Serves the bundled card at `/cst_grill/cst-grill-card.js` and registers it as a dashboard resource
-  (`?v=<card version>` for cache-busting). In YAML resource mode it uses `add_extra_js_url` instead.
+- Serves the bundled card at `/cst_grill/cst-grill-card.js` and **automatically** adds the Lovelace
+  JavaScript module resource (`?v=<card version>`). You do not add anything under Settings → Dashboards → Resources.
 - **CST 1-Pot only.** The config flow lists ESPHome devices that look like a CST 1-Pot:
   `select.*_cook_mode` + `sensor.*_chamber_temperature` + `number.*_smoker_set_temperature`.
 - Optional **CST Grills** dashboard (sidebar) with one tab per grill: `custom:cst-grill-card` pinned by `device_id`.

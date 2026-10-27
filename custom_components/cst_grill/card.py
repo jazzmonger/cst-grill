@@ -1,6 +1,7 @@
 """Serve the bundled card, register it as a Lovelace resource, and manage the CST Grills dashboard."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,8 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 _STATIC_DONE = f"{DOMAIN}_static_registered"
 _EXTRA_JS = f"{DOMAIN}_extra_js"
-_RESOURCE_DONE = f"{DOMAIN}_lovelace_resource"
+_RETRY_TASK = f"{DOMAIN}_card_register_retries"
+_RETRY_DELAYS_S = (0, 2, 5, 15, 60)
 
 
 async def _register_static(hass: HomeAssistant) -> None:
@@ -30,14 +32,23 @@ async def _register_static(hass: HomeAssistant) -> None:
     hass.data[_STATIC_DONE] = True
 
 
-async def _register_lovelace_resource(hass: HomeAssistant) -> None:
-    """Register the card JS as a global Lovelace module (storage) and/or extra JS URL."""
-    if hass.data.get(_RESOURCE_DONE):
-        return
+def _storage_resource_ok(hass: HomeAssistant) -> bool:
+    ll = hass.data.get(LOVELACE_DATA)
+    if ll is None:
+        return False
+    if ll.resource_mode != "storage":
+        return True
+    resources = getattr(ll, "resources", None)
+    if resources is None:
+        return False
+    return any(str(r.get("url", "")).startswith(CARD_URL) for r in resources.async_items())
 
+
+async def _register_lovelace_resource(hass: HomeAssistant) -> bool:
+    """Register card JS in Lovelace resources (storage) and via frontend extra_js (always)."""
+    stored = False
     ll = hass.data.get(LOVELACE_DATA)
     resources = getattr(ll, "resources", None) if ll is not None else None
-    stored = False
     if (
         ll is not None
         and ll.resource_mode == "storage"
@@ -56,13 +67,14 @@ async def _register_lovelace_resource(hass: HomeAssistant) -> None:
         else:
             await resources.async_create_item({"res_type": "module", "url": CARD_URL_VERSIONED})
             stored = True
+            _LOGGER.info("CST Grill: added Lovelace resource %s (no manual step needed)", CARD_URL_VERSIONED)
         if any(
             "cst-grill-card.js" in str(r.get("url"))
             and not str(r.get("url")).startswith(CARD_URL)
             for r in resources.async_items()
         ):
             _LOGGER.warning(
-                "A manual cst-grill-card resource also exists; remove it (integration serves %s)",
+                "Duplicate cst-grill-card resource in Lovelace; remove /local copy (integration serves %s)",
                 CARD_URL,
             )
 
@@ -70,33 +82,48 @@ async def _register_lovelace_resource(hass: HomeAssistant) -> None:
         frontend.add_extra_js_url(hass, CARD_URL_VERSIONED)
         hass.data[_EXTRA_JS] = True
 
-    if stored or hass.data.get(_EXTRA_JS):
-        hass.data[_RESOURCE_DONE] = True
-        _LOGGER.debug("CST Grill card registered (storage_resource=%s)", stored)
+    if ll is not None and ll.resource_mode == "storage":
+        return stored
+    return bool(hass.data.get(_EXTRA_JS))
 
 
-async def async_register_card(hass: HomeAssistant) -> None:
-    """Static path + Lovelace resource (storage mode) or extra JS URL (YAML mode)."""
+def _card_ready(hass: HomeAssistant) -> bool:
+    if not hass.data.get(_STATIC_DONE) and not hass.data.get(_EXTRA_JS):
+        return False
+    ll = hass.data.get(LOVELACE_DATA)
+    if ll is None:
+        return False
+    if ll.resource_mode == "storage":
+        return _storage_resource_ok(hass)
+    return bool(hass.data.get(_EXTRA_JS))
+
+
+async def async_register_card(hass: HomeAssistant) -> bool:
+    """Static path + Lovelace resource. Returns True when registration is complete for this HA mode."""
     await _register_static(hass)
-    await _register_lovelace_resource(hass)
+    return await _register_lovelace_resource(hass)
+
+
+async def _register_with_retries(hass: HomeAssistant) -> None:
+    """Keep trying until Lovelace exists and the storage resource row is created."""
+    for delay in _RETRY_DELAYS_S:
+        if delay:
+            await asyncio.sleep(delay)
+        ok = await async_register_card(hass)
+        if _card_ready(hass):
+            _LOGGER.debug("CST Grill card JS ready (last_register_ok=%s)", ok)
+            return
+    _LOGGER.error(
+        "CST Grill card JS not registered after retries; reload integration or restart HA"
+    )
 
 
 def async_schedule_card_register(hass: HomeAssistant) -> None:
-    """Register card when Lovelace is ready (setup_entry can run before lovelace_loaded)."""
-
-    async def _run() -> None:
-        await async_register_card(hass)
-
-    if LOVELACE_DATA in hass.data:
-        hass.async_create_task(_run())
+    """Start background registration (safe to call from async_setup and setup_entry)."""
+    existing = hass.data.get(_RETRY_TASK)
+    if existing and not existing.done():
         return
-
-    @callback
-    def _on_lovelace(_event: Any) -> None:
-        hass.async_create_task(_run())
-
-    hass.bus.async_listen_once("lovelace_loaded", _on_lovelace)
-    hass.async_create_task(_run())
+    hass.data[_RETRY_TASK] = hass.async_create_task(_register_with_retries(hass))
 
 
 async def async_unregister_card(hass: HomeAssistant) -> None:
@@ -110,7 +137,9 @@ async def async_unregister_card(hass: HomeAssistant) -> None:
                 await resources.async_delete_item(r["id"])
     if hass.data.pop(_EXTRA_JS, False):
         frontend.remove_extra_js_url(hass, CARD_URL_VERSIONED)
-    hass.data.pop(_RESOURCE_DONE, None)
+    task = hass.data.pop(_RETRY_TASK, None)
+    if task and not task.done():
+        task.cancel()
 
 
 def _dash_item() -> dict[str, Any]:
@@ -131,12 +160,23 @@ def _grill_view(dev_id: str, name: str) -> dict[str, Any]:
 
 async def async_sync_dashboard(hass: HomeAssistant, grills: list[tuple[str, str]]) -> None:
     """Create/update the CST Grills dashboard with one view per grill. Views the user added are kept."""
+    async_schedule_card_register(hass)
+
     ll = hass.data.get(LOVELACE_DATA)
     if ll is None:
-        _LOGGER.debug("Lovelace not ready; skip CST Grills dashboard sync")
+        _LOGGER.debug("Lovelace not ready; defer CST Grills dashboard sync")
+
+        @callback
+        def _on_lovelace(_event: Any) -> None:
+            hass.async_create_task(async_sync_dashboard(hass, grills))
+
+        hass.bus.async_listen_once("lovelace_loaded", _on_lovelace)
         return
 
-    await async_register_card(hass)
+    if not _card_ready(hass):
+        await async_register_card(hass)
+    if not _card_ready(hass):
+        _LOGGER.debug("CST Grill card not ready yet; dashboard sync will retry with registration")
 
     dash = ll.dashboards.get(DASHBOARD_URL)
     if dash is None:

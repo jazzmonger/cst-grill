@@ -21,6 +21,12 @@ from .card import (
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register card JS as soon as the integration domain loads (before config entries)."""
+    async_schedule_card_register(hass)
+    return True
+
+
 def _grills_for_dashboard(hass: HomeAssistant, exclude: str | None = None) -> list[tuple[str, str]]:
     dev_reg = dr.async_get(hass)
     out = []
@@ -41,6 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if LOVELACE_DATA in hass.data:
         await _sync_all(hass)
     else:
+
         @callback
         def _on_lovelace(_event) -> None:
             hass.async_create_task(_sync_all(hass))
