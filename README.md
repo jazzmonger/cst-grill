@@ -16,11 +16,19 @@ integration; this adds the card and the dashboard on top. Everything stays local
 - Removing the last grill removes the dashboard and the resource.
 
 ## Install
-1. HACS → ⋮ → Custom repositories → `https://github.com/jazzmonger/cst-grill`, category **Integration**
-   (private repo: HACS needs a GitHub token with access, or make it public). Install, then restart HA.
-   Manual: copy `custom_components/cst_grill` to `/config/custom_components/` and restart.
-2. Settings → Devices & services → Add integration → **CST Grill** → pick your grill.
-3. Open **CST Grills** in the sidebar. Hard-refresh once.
+
+### HACS (recommended)
+1. HACS → ⋮ → **Custom repositories** → `https://github.com/jazzmonger/cst-grill`, category **Integration** (not Dashboard).
+2. Install **CST Grill**, restart Home Assistant.
+
+If you still see `GitHub returned 404`, open HACS → **Settings** → **GitHub**, add a classic token with **repo** scope, then retry.
+
+### Manual
+Copy `custom_components/cst_grill` to `/config/custom_components/` and restart HA.
+
+### After install
+1. Settings → Devices & services → Add integration → **CST Grill** → pick your grill.
+2. Open **CST Grills** in the sidebar. Hard-refresh the browser once.
 
 If you previously added `/local/cst-grill-card.js` by hand, remove that resource; the integration serves the card now.
 
